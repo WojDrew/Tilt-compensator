@@ -13,9 +13,9 @@
 #define ACC_MARGIN 0.03
 #define TILT_MARGIN 2.0
 
-#define DEBUG
-#define CSV
-//#define MOVE
+//#define DEBUG
+//#define CSV
+#define MOVE
 
 MPU6050 mpu;
 
@@ -54,7 +54,7 @@ void setup()
 	calibrateAcc();
 
 	// motor init
-	motor.setMaxSpeed(10000.0);
+	motor.setMaxSpeed(1000.0);
 	motor.setAcceleration(0);
 	motor.setSpeed(200);
 
@@ -105,34 +105,39 @@ void loop()
 #endif
 	
 #else
-	tilt = complementaryFilter(accX, accZ, vel, tilt);
+	//tilt = complementaryFilter(accX, accZ, vel, tilt);
 	//tilt = getGyroAngle(vel, tilt);
+	tilt = kalman.getAngle(getAccAngle(accX, accZ), vel, dt);
 	Serial.print("tilt = ");
 	Serial.println(tilt);
 #endif
 	controlSig = controllerPID(tilt, prev);
-	if (controlSig > 180.0)
+	/*if (controlSig > 180.0)
 		controlSig = 179.0;
 	else if (controlSig < -180.0)
-		controlSig = -179.0;
+		controlSig = -179.0;*/
+	controlSig = clampPID(controlSig, tilt);
 	prev = tilt;
-	//Serial.print("control signal = ");
-	//Serial.println(controlSig);
+	Serial.print("control signal = ");
+	Serial.println(controlSig);
 
 #ifdef MOVE
 	//Serial.print("current position = ");
 	//Serial.println(motor.currentPosition());
-	if (abs(tilt) > TILT_MARGIN) {
-		steps = degreesToSteps(controlSig);
+	//if (abs(tilt) > TILT_MARGIN) {
+		
+		/*steps = degreesToSteps(controlSig);
 		Serial.print("steps = ");
 		Serial.println(steps);
 		motor.setSpeed(steps*10000);
-		motor.moveTo(steps);
+		motor.moveTo(steps);*/
+		motor.setSpeed(controlSig);
 		motor.run();
-	} else {
-		motor.stop();
-		motor.setCurrentPosition(0);
-	}
+	//} else {
+		//motor.stop();
+		//motor.setCurrentPosition(0);
+		//motor.setSpeed(0);
+	//}
 #endif
 
 #ifdef DEBUG
