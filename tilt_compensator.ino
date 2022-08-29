@@ -11,9 +11,10 @@
 #define FULLSTEP 4
 #define DELAY 10.0
 #define ACC_MARGIN 0.03
+#define GRAVITY 9.81
 #define TILT_MARGIN 2.0
 
-//#define DEBUG
+#define DEBUG
 //#define CSV
 #define MOVE
 
@@ -45,7 +46,7 @@ void setup()
 
 	while(!mpu.begin(MPU6050_SCALE_2000DPS, MPU6050_RANGE_2G))
 	{
-		Serial.println("Could not find a valid MPU6050 sensor, check wiring!");
+		Serial.println("Nie znaleziono sensora MPU6050");
 		delay(500);
 	}
 
@@ -76,18 +77,18 @@ void loop()
 	float accX, accZ, vel, controlSig;
 	float steps;
 	
-	Vector normAccel = mpu.readNormalizeAccel();
-	Vector normGyro = mpu.readNormalizeGyro();
+	Vector accVector = mpu.readNormalizeAccel();
+	Vector gyrVector = mpu.readNormalizeGyro();
 
-	accX = normAccel.XAxis;
-	//Serial.print("Acc Xnorm = ");
-	//Serial.println(accX);
+	accX = accVector.XAxis;
+	Serial.print("Acc Xnorm = ");
+	Serial.println(accX);
 		
-	accZ = normAccel.ZAxis;
-	//Serial.print("Acc Znorm = ");
-	//Serial.println(accZ);
+	accZ = accVector.ZAxis;
+	Serial.print("Acc Znorm = ");
+	Serial.println(accZ);
 
-	vel = normGyro.YAxis;
+	vel = gyrVector.YAxis;
 	//Serial.print("Gyro Ynorm = ");
 	//Serial.println(vel);
 
@@ -101,7 +102,7 @@ void loop()
 	printCSV(angles);
 #else
 	printDebug(angles);
-	tilt = tiltKal;
+	tilt = angles.kalman;
 #endif
 	
 #else
@@ -148,23 +149,44 @@ void loop()
 
 void calibrateAcc()
 {
-	Vector normAccel;
-	float acc = 1.0;
+	Vector accVector;
+	float acc;
 	int acc_off, temp;
 
-	while (abs(acc) > ACC_MARGIN) {
-		normAccel = mpu.readNormalizeAccel();
-		acc = normAccel.XAxis;
-		Serial.print("acc = ");
-		Serial.println(acc);
+	accVector = mpu.readNormalizeAccel();
+	acc = accVector.XAxis;
 
+	while (abs(acc) > ACC_MARGIN) {
 		temp = -acc*10;
 		acc_off = acc_off + temp;
-		Serial.print("acc_off = ");
+		Serial.print("acc_off X = ");
 		Serial.println(acc_off);
 
 		mpu.setAccelOffsetX(acc_off);
 		delay(2);
+
+		accVector = mpu.readNormalizeAccel();
+		acc = accVector.XAxis;
+		Serial.print("acc X = ");
+		Serial.println(acc);
+	}
+
+	accVector = mpu.readNormalizeAccel();
+	acc = accVector.ZAxis;
+
+	while (abs(acc - GRAVITY) > ACC_MARGIN) {
+		temp = -(abs(acc - GRAVITY))*10;
+		acc_off = acc_off + temp;
+		Serial.print("acc_off Z = ");
+		Serial.println(acc_off);
+
+		mpu.setAccelOffsetZ(acc_off);
+		delay(2);
+
+		accVector = mpu.readNormalizeAccel();
+		acc = accVector.ZAxis;
+		Serial.print("acc Z = ");
+		Serial.println(acc);
 	}
 }
 
