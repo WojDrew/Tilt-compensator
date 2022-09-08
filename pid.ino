@@ -1,5 +1,5 @@
 
-float C = 0;
+float I = 0;
 float Kp = 10.0;
 float Ki = 1.5;
 float Kd = 1.5;
@@ -22,6 +22,9 @@ float midpointIntegral(float tilt, float sum)
 
 float trapezoidIntegral(float tilt, float prev, float sum)
 {
+	if (clamp)
+		return sum;
+		
 	return sum + ((tilt + prev)/2.0)*dt;
 }
 
@@ -32,22 +35,30 @@ float derivative(float tilt, float prev)
 
 float controllerPID(float tilt, float prev)
 {
-	float D = derivative(tilt, prev);
-	float intInput = tilt;
+	float D = 0, P = 0;
 
-	if (clamp)
-		intInput = 0;
-	C = midpointIntegral(intInput, C);
+#ifdef P_TERM
+	P = tilt;
+#endif
+
+#ifdef I_TERM
+	I = trapezoidIntegral(tilt, prev, I);
+#endif
+
+#ifdef D_TERM
+	D = derivative(tilt, prev);
+#endif
+
 	Serial.print("clamp = ");
 	Serial.println(clamp);
-	Serial.print("C = ");
-	Serial.println(C);
+	Serial.print("I = ");
+	Serial.println(I);
 	Serial.print("D = ");
 	Serial.println(D);
 	Serial.print("tilt = ");
 	Serial.println(tilt);
 	
-	return Kp*(tilt + (1.0/Ti)*C + Td*D);
+	return Kp*(P + (1.0/Ti)*I + Td*D);
 }
 
 float clampPID(float cs, float tilt)

@@ -14,9 +14,12 @@
 #define GRAVITY 9.81
 #define TILT_MARGIN 2.0
 
-#define DEBUG
+//#define DEBUG
 //#define CSV
 #define MOVE
+#define P_TERM
+#define I_TERM
+#define D_TERM
 
 MPU6050 mpu;
 
@@ -149,9 +152,9 @@ void loop()
 
 void calibrateAcc()
 {
+	int acc_off, temp;
 	Vector accVector;
 	float acc;
-	int acc_off, temp;
 
 	accVector = mpu.readNormalizeAccel();
 	acc = accVector.XAxis;
